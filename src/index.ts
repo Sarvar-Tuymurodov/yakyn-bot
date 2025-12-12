@@ -25,7 +25,7 @@ if (!BOT_TOKEN) {
 
 async function main() {
   // Create bot
-  const bot = createBot(BOT_TOKEN);
+  const bot = createBot(BOT_TOKEN!);
 
   // Register commands
   bot.command("start", startCommand);
