@@ -1,0 +1,21 @@
+import express from "express";
+import cors from "cors";
+import contactsRouter from "./routes/contacts.js";
+import usersRouter from "./routes/users.js";
+
+const app = express();
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Health check
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+// API routes
+app.use("/api/contacts", contactsRouter);
+app.use("/api/user", usersRouter);
+
+export default app;

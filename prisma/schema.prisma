@@ -1,0 +1,39 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          Int       @id @default(autoincrement())
+  telegramId  BigInt    @unique @map("telegram_id")
+  username    String?
+  language    String    @default("ru") // "ru" | "uz"
+  timezone    String    @default("UTC+5")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  contacts    Contact[]
+
+  @@map("users")
+}
+
+model Contact {
+  id              Int       @id @default(autoincrement())
+  userId          Int       @map("user_id")
+  name            String
+  frequency       String    // "weekly" | "biweekly" | "monthly" | "quarterly"
+  reminderTime    String    @map("reminder_time") // "09:00", "10:00", etc.
+  lastContactAt   DateTime? @map("last_contact_at")
+  nextReminderAt  DateTime  @map("next_reminder_at")
+  snoozedUntil    DateTime? @map("snoozed_until")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("contacts")
+}
