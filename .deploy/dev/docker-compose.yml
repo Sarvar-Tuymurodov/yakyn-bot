@@ -1,0 +1,16 @@
+services:
+  yakyn-bot-dev:
+    container_name: yakyn-bot-dev
+    image: ghcr.io/blink-uz/yakyn-bot:dev-latest
+    restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    ports:
+      - 10301:3000
+    environment:
+      - NODE_ENV=development
+
+networks:
+  default:
+    external: true
+    name: yakyn_network

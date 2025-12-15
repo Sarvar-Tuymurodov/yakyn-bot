@@ -1,0 +1,47 @@
+services:
+  yakyn-bot-local:
+    container_name: yakyn-bot-local
+    build:
+      context: ../..
+      dockerfile: .deploy/_shared/Dockerfile
+    ports:
+      - "10300:3000"
+    restart: unless-stopped
+    volumes:
+      - ../../:/app
+      - /app/node_modules
+      - /app/dist
+    env_file:
+      - ../../.env
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/yakyn?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    container_name: yakyn-postgres
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: yakyn
+    ports:
+      - "5433:5432"
+    volumes:
+      - yakyn_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  yakyn_postgres_data:
+
+networks:
+  default:
+    external: true
+    name: yakyn_network

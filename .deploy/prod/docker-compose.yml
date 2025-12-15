@@ -1,0 +1,17 @@
+services:
+  yakyn-bot-prod:
+    container_name: yakyn-bot-prod
+    image: ghcr.io/blink-uz/yakyn-bot:prod-latest
+    platform: linux/amd64
+    restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    ports:
+      - 10302:3000
+    environment:
+      - NODE_ENV=production
+
+networks:
+  default:
+    external: true
+    name: yakyn_network

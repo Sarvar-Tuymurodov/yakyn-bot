@@ -1,0 +1,16 @@
+services:
+  yakyn-bot-stage:
+    container_name: yakyn-bot-stage
+    image: ghcr.io/blink-uz/yakyn-bot:stage-latest
+    restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    ports:
+      - 10303:3000
+    environment:
+      - NODE_ENV=production
+
+networks:
+  default:
+    external: true
+    name: yakyn_network
