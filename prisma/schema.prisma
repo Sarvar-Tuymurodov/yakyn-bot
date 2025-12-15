@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model User {
@@ -16,7 +16,8 @@ model User {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  contacts    Contact[]
+  contacts       Contact[]
+  contactHistory ContactHistory[]
 
   @@map("users")
 }
@@ -27,13 +28,31 @@ model Contact {
   name            String
   frequency       String    // "weekly" | "biweekly" | "monthly" | "quarterly"
   reminderTime    String    @map("reminder_time") // "09:00", "10:00", etc.
+  notes           String?   // Optional notes about the contact
+  birthday        DateTime? // Optional birthday (only month and day matter)
   lastContactAt   DateTime? @map("last_contact_at")
   nextReminderAt  DateTime  @map("next_reminder_at")
   snoozedUntil    DateTime? @map("snoozed_until")
+  birthdayReminderSentYear Int? @map("birthday_reminder_sent_year") // Track 3-day reminder
+  birthdayWishSentYear     Int? @map("birthday_wish_sent_year")     // Track on-the-day wish
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  history         ContactHistory[]
 
   @@map("contacts")
+}
+
+model ContactHistory {
+  id        Int      @id @default(autoincrement())
+  contactId Int      @map("contact_id")
+  userId    Int      @map("user_id")
+  eventType String   @map("event_type") // "contacted"
+  createdAt DateTime @default(now()) @map("created_at")
+
+  contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("contact_history")
 }

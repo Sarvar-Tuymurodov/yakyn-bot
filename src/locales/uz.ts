@@ -2,19 +2,22 @@ export const uz = {
   // Language selection
   selectLanguage: "🌐 Tilni tanlang / Выберите язык",
 
-  // Welcome
+  // Welcome (for new users)
   welcome: `👋 Yakyn'ga xush kelibsiz!
 
 Men sizga muhim odamlar bilan aloqani yo'qotmaslikda yordam beraman.
 
 Qanday ishlaydi:
-1. Kontakt qo'shing
+1. Ilovada kontakt qo'shing
 2. Qanchalik tez-tez eslatishni tanlang
 3. O'z vaqtida eslatmalar oling
 
-Buyruqlar:
-/add — kontakt qo'shish
-/list — kontaktlarim`,
+Boshlash uchun quyidagi tugmani bosing 👇`,
+
+  // Welcome back (for returning users)
+  welcomeBack: `👋 Qaytganingizdan xursandmiz!
+
+Ilovani ochish uchun quyidagi tugmani bosing 👇`,
 
   // Add contact flow
   enterName: "👤 Kontakt ismini kiriting:",
@@ -43,7 +46,9 @@ Birinchi eslatma: {date}`,
     addAnother: "➕ Yana qo'shish",
     openApp: "📱 Yakyn'ni ochish",
     contacted: "✅ Bog'landim",
-    tomorrow: "⏰ Ertaga",
+    snooze1h: "1s",
+    snooze3h: "3s",
+    tomorrow: "Ertaga",
     delete: "🗑 O'chirish",
     confirmDelete: "❌ Ha, o'chirish",
     cancel: "◀️ Bekor qilish",
@@ -61,9 +66,20 @@ Bog'lanish vaqti keldi:
 {contacts}`,
   reminderItem: "• {name} — {days} kun oldin",
 
+  // Birthday reminders
+  birthdayReminder: `🎂 Tug'ilgan kun yaqinlashmoqda!
+
+{name}ning tug'ilgan kuni {days} kundan keyin.
+Tabriklashtni unutmang!`,
+  birthdayToday: `🎉 Bugun tug'ilgan kun!
+
+{name}ning bugun tug'ilgan kuni!
+Hoziroq tabriklang!`,
+
   // Actions
   markedContacted: "✅ Yaxshi! Belgilab qo'ydim. Keyingi eslatma: {date}",
   snoozedTomorrow: "⏰ Yaxshi! Ertaga soat {time} da eslataman",
+  snoozedHours: "⏰ Yaxshi! {hours} soatdan keyin eslataman",
 
   // Delete
   confirmDeleteContact: '⚠️ "{name}" kontaktini o\'chirasizmi?',

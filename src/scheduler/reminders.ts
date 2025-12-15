@@ -5,6 +5,18 @@ import { t, formatMessage, Language, locales } from "../locales/index.js";
 import { InlineKeyboard } from "grammy";
 import type { BotContext } from "../bot/index.js";
 
+interface BirthdayContact {
+  id: number;
+  name: string;
+  birthday: Date;
+  birthdayReminderSentYear: number | null;
+  birthdayWishSentYear: number | null;
+  user: {
+    telegramId: bigint;
+    language: string;
+  };
+}
+
 interface DueReminder {
   id: number;
   name: string;
@@ -34,7 +46,14 @@ export function startReminderScheduler(bot: Bot<BotContext>) {
     }
   });
 
-  console.log("⏰ Reminder scheduler started");
+  // Run once per day at 09:00 to check for birthdays
+  cron.schedule("0 9 * * *", async () => {
+    try {
+      await processBirthdayReminders(bot);
+    } catch (error) {
+      console.error("Birthday reminder scheduler error:", error);
+    }
+  });
 }
 
 async function processReminders(bot: Bot<BotContext>) {
@@ -117,14 +136,24 @@ async function sendReminderNotification(
 
   // If single contact, add quick action buttons
   if (reminders.length === 1) {
+    const contactId = reminders[0].id;
     keyboard.row();
     keyboard.text(
       locales[lang].buttons.contacted,
-      `reminder:contacted:${reminders[0].id}`
+      `reminder:contacted:${contactId}`
+    );
+    keyboard.row();
+    keyboard.text(
+      locales[lang].buttons.snooze1h,
+      `reminder:snooze:${contactId}:1`
+    );
+    keyboard.text(
+      locales[lang].buttons.snooze3h,
+      `reminder:snooze:${contactId}:3`
     );
     keyboard.text(
       locales[lang].buttons.tomorrow,
-      `reminder:snooze:${reminders[0].id}`
+      `reminder:snooze:${contactId}:tomorrow`
     );
   }
 
@@ -146,5 +175,90 @@ async function sendReminderNotification(
     });
   } catch (error) {
     console.error(`Failed to send message to ${telegramId}:`, error);
+  }
+}
+
+function getDaysUntilBirthday(birthday: Date): number {
+  const now = new Date();
+  const thisYear = now.getFullYear();
+
+  // Create birthday date for this year
+  const birthdayThisYear = new Date(thisYear, birthday.getMonth(), birthday.getDate());
+
+  // If birthday has passed this year, check next year
+  if (birthdayThisYear < now) {
+    birthdayThisYear.setFullYear(thisYear + 1);
+  }
+
+  const diffTime = birthdayThisYear.getTime() - now.getTime();
+  return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+}
+
+async function processBirthdayReminders(bot: Bot<BotContext>) {
+  const currentYear = new Date().getFullYear();
+
+  // Find all contacts with birthdays
+  const contactsWithBirthdays = await prisma.contact.findMany({
+    where: {
+      birthday: { not: null },
+    },
+    include: {
+      user: {
+        select: {
+          telegramId: true,
+          language: true,
+        },
+      },
+    },
+  });
+
+  for (const contact of contactsWithBirthdays as BirthdayContact[]) {
+    const daysUntil = getDaysUntilBirthday(contact.birthday);
+    const lang = contact.user.language as Language;
+    const telegramId = Number(contact.user.telegramId);
+
+    try {
+      // Birthday is today
+      if (daysUntil === 0 && contact.birthdayWishSentYear !== currentYear) {
+        const message = formatMessage(t(lang, "birthdayToday"), {
+          name: contact.name,
+        });
+
+        const keyboard = new InlineKeyboard();
+        keyboard.text("📱 Открыть Yakyn", "action:open_app");
+
+        await bot.api.sendMessage(telegramId, message, {
+          reply_markup: keyboard,
+        });
+
+        // Mark birthday wish as sent for this year
+        await prisma.contact.update({
+          where: { id: contact.id },
+          data: { birthdayWishSentYear: currentYear },
+        });
+      }
+      // Birthday is in 3 days
+      else if (daysUntil === 3 && contact.birthdayReminderSentYear !== currentYear) {
+        const message = formatMessage(t(lang, "birthdayReminder"), {
+          name: contact.name,
+          days: daysUntil,
+        });
+
+        const keyboard = new InlineKeyboard();
+        keyboard.text("📱 Открыть Yakyn", "action:open_app");
+
+        await bot.api.sendMessage(telegramId, message, {
+          reply_markup: keyboard,
+        });
+
+        // Mark birthday reminder as sent for this year
+        await prisma.contact.update({
+          where: { id: contact.id },
+          data: { birthdayReminderSentYear: currentYear },
+        });
+      }
+    } catch (error) {
+      console.error(`Failed to send birthday reminder for contact ${contact.id}:`, error);
+    }
   }
 }

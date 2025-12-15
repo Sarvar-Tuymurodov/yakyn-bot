@@ -14,12 +14,16 @@ export interface CreateContactInput {
   name: string;
   frequency: Frequency;
   reminderTime: string;
+  notes?: string;
+  birthday?: Date;
 }
 
 export interface UpdateContactInput {
   name?: string;
   frequency?: Frequency;
   reminderTime?: string;
+  notes?: string | null;
+  birthday?: Date | null;
 }
 
 function calculateNextReminder(frequency: Frequency, reminderTime: string): Date {
@@ -56,6 +60,8 @@ export const contactService = {
         name: data.name,
         frequency: data.frequency,
         reminderTime: data.reminderTime,
+        notes: data.notes,
+        birthday: data.birthday,
         nextReminderAt,
       },
     });
@@ -96,6 +102,15 @@ export const contactService = {
     const frequency = contact.frequency as Frequency;
     const nextReminderAt = calculateNextReminder(frequency, contact.reminderTime);
 
+    // Create history entry
+    await prisma.contactHistory.create({
+      data: {
+        contactId: id,
+        userId: contact.userId,
+        eventType: "contacted",
+      },
+    });
+
     return prisma.contact.update({
       where: { id },
       data: {
@@ -103,6 +118,16 @@ export const contactService = {
         nextReminderAt,
         snoozedUntil: null,
       },
+    });
+  },
+
+  async snooze(id: number, hours: number) {
+    const snoozedUntil = new Date();
+    snoozedUntil.setHours(snoozedUntil.getHours() + hours);
+
+    return prisma.contact.update({
+      where: { id },
+      data: { snoozedUntil },
     });
   },
 
@@ -154,6 +179,14 @@ export const contactService = {
         nextReminderAt: { lte: now },
         snoozedUntil: null,
       },
+    });
+  },
+
+  async getHistory(contactId: number, limit = 20) {
+    return prisma.contactHistory.findMany({
+      where: { contactId },
+      orderBy: { createdAt: "desc" },
+      take: limit,
     });
   },
 };

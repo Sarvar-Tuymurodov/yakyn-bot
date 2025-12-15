@@ -7,8 +7,10 @@ export async function reminderCallback(ctx: BotContext) {
   const callbackData = ctx.callbackQuery?.data;
   if (!callbackData?.startsWith("reminder:")) return;
 
-  const [, action, contactIdStr] = callbackData.split(":");
-  const contactId = parseInt(contactIdStr);
+  const parts = callbackData.split(":");
+  const action = parts[1];
+  const contactId = parseInt(parts[2]);
+  const snoozeParam = parts[3]; // For snooze: "1", "3", or "tomorrow"
   const telegramId = BigInt(ctx.from!.id);
 
   // Get user for language
@@ -43,12 +45,22 @@ export async function reminderCallback(ctx: BotContext) {
     }
 
     case "snooze": {
-      // Snooze until tomorrow
-      const updated = await contactService.snoozeUntilTomorrow(contactId);
+      let message: string;
 
-      const message = formatMessage(t(lang, "snoozedTomorrow"), {
-        time: contact.reminderTime,
-      });
+      if (snoozeParam === "tomorrow") {
+        // Snooze until tomorrow
+        await contactService.snoozeUntilTomorrow(contactId);
+        message = formatMessage(t(lang, "snoozedTomorrow"), {
+          time: contact.reminderTime,
+        });
+      } else {
+        // Snooze for specific hours (1 or 3)
+        const hours = parseInt(snoozeParam) || 1;
+        await contactService.snooze(contactId, hours);
+        message = formatMessage(t(lang, "snoozedHours"), {
+          hours: hours.toString(),
+        });
+      }
 
       await ctx.editMessageText(message);
       break;

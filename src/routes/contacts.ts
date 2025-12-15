@@ -34,6 +34,8 @@ router.get("/", async (req: AuthenticatedRequest, res: Response) => {
         name: contact.name,
         frequency: contact.frequency,
         reminderTime: contact.reminderTime,
+        notes: contact.notes,
+        birthday: contact.birthday,
         lastContactAt: contact.lastContactAt,
         nextReminderAt: nextReminder,
         status,
@@ -75,7 +77,7 @@ router.get("/:id", async (req: AuthenticatedRequest, res: Response) => {
 // POST /api/contacts - Create new contact
 router.post("/", async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { name, frequency, reminderTime } = req.body;
+    const { name, frequency, reminderTime, notes, birthday } = req.body;
 
     // Validate input
     if (!name || typeof name !== "string" || name.trim().length === 0) {
@@ -95,11 +97,23 @@ router.post("/", async (req: AuthenticatedRequest, res: Response) => {
       return;
     }
 
+    // Parse birthday if provided
+    let birthdayDate: Date | undefined;
+    if (birthday) {
+      birthdayDate = new Date(birthday);
+      if (isNaN(birthdayDate.getTime())) {
+        res.status(400).json({ error: "Invalid birthday format" });
+        return;
+      }
+    }
+
     const contact = await contactService.create({
       userId: req.dbUser!.id,
       name: name.trim(),
       frequency,
       reminderTime,
+      notes: notes?.trim() || undefined,
+      birthday: birthdayDate,
     });
 
     res.status(201).json({ contact });
@@ -126,8 +140,14 @@ router.put("/:id", async (req: AuthenticatedRequest, res: Response) => {
       return;
     }
 
-    const { name, frequency, reminderTime } = req.body;
-    const updateData: { name?: string; frequency?: Frequency; reminderTime?: string } = {};
+    const { name, frequency, reminderTime, notes, birthday } = req.body;
+    const updateData: {
+      name?: string;
+      frequency?: Frequency;
+      reminderTime?: string;
+      notes?: string | null;
+      birthday?: Date | null;
+    } = {};
 
     if (name !== undefined) {
       if (typeof name !== "string" || name.trim().length === 0) {
@@ -153,6 +173,25 @@ router.put("/:id", async (req: AuthenticatedRequest, res: Response) => {
         return;
       }
       updateData.reminderTime = reminderTime;
+    }
+
+    // Handle notes (can be set to null to clear)
+    if (notes !== undefined) {
+      updateData.notes = notes?.trim() || null;
+    }
+
+    // Handle birthday (can be set to null to clear)
+    if (birthday !== undefined) {
+      if (birthday === null) {
+        updateData.birthday = null;
+      } else {
+        const birthdayDate = new Date(birthday);
+        if (isNaN(birthdayDate.getTime())) {
+          res.status(400).json({ error: "Invalid birthday format" });
+          return;
+        }
+        updateData.birthday = birthdayDate;
+      }
     }
 
     const contact = await contactService.update(contactId, updateData);
@@ -213,7 +252,32 @@ router.post("/:id/contacted", async (req: AuthenticatedRequest, res: Response) =
   }
 });
 
-// POST /api/contacts/:id/snooze - Snooze until tomorrow
+// GET /api/contacts/:id/history - Get contact history
+router.get("/:id/history", async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const contactId = parseInt(req.params.id);
+    const existingContact = await contactService.findById(contactId);
+
+    if (!existingContact) {
+      res.status(404).json({ error: "Contact not found" });
+      return;
+    }
+
+    // Verify ownership
+    if (existingContact.userId !== req.dbUser!.id) {
+      res.status(403).json({ error: "Access denied" });
+      return;
+    }
+
+    const history = await contactService.getHistory(contactId);
+    res.json({ history });
+  } catch (error) {
+    console.error("Error fetching contact history:", error);
+    res.status(500).json({ error: "Failed to fetch contact history" });
+  }
+});
+
+// POST /api/contacts/:id/snooze - Snooze reminder
 router.post("/:id/snooze", async (req: AuthenticatedRequest, res: Response) => {
   try {
     const contactId = parseInt(req.params.id);
@@ -230,7 +294,20 @@ router.post("/:id/snooze", async (req: AuthenticatedRequest, res: Response) => {
       return;
     }
 
-    const contact = await contactService.snoozeUntilTomorrow(contactId);
+    const { hours } = req.body;
+    let contact;
+
+    if (hours === "tomorrow") {
+      contact = await contactService.snoozeUntilTomorrow(contactId);
+    } else {
+      const snoozeHours = parseInt(hours) || 1;
+      if (snoozeHours < 1 || snoozeHours > 24) {
+        res.status(400).json({ error: "Invalid snooze duration" });
+        return;
+      }
+      contact = await contactService.snooze(contactId, snoozeHours);
+    }
+
     res.json({ contact });
   } catch (error) {
     console.error("Error snoozing contact:", error);

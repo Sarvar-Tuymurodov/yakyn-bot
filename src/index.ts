@@ -2,14 +2,7 @@ import "dotenv/config";
 import { webhookCallback } from "grammy";
 import { createBot } from "./bot/index.js";
 import { startCommand } from "./bot/commands/start.js";
-import { addCommand } from "./bot/commands/add.js";
-import { listCommand } from "./bot/commands/list.js";
-import { languageCallback } from "./bot/callbacks/language.js";
-import { frequencyCallback } from "./bot/callbacks/frequency.js";
-import { timeCallback } from "./bot/callbacks/time.js";
-import { actionsCallback } from "./bot/callbacks/actions.js";
 import { reminderCallback } from "./bot/callbacks/reminder.js";
-import { handleTextMessage } from "./bot/middlewares/conversation.js";
 import { startReminderScheduler } from "./scheduler/reminders.js";
 import app from "./app.js";
 
@@ -29,30 +22,29 @@ async function main() {
 
   // Register commands
   bot.command("start", startCommand);
-  bot.command("add", addCommand);
-  bot.command("list", listCommand);
 
   // Register callback handlers
-  bot.callbackQuery(/^lang:/, languageCallback);
-  bot.callbackQuery(/^freq:/, frequencyCallback);
-  bot.callbackQuery(/^time:/, timeCallback);
-  bot.callbackQuery(/^action:/, actionsCallback);
   bot.callbackQuery(/^reminder:/, reminderCallback);
-
-  // Handle text messages (for conversation flow)
-  bot.on("message:text", handleTextMessage);
 
   // Error handler
   bot.catch((err) => {
     console.error("Bot error:", err);
   });
 
-  // Set bot commands for menu
+  // Set bot commands for menu (minimal)
   await bot.api.setMyCommands([
     { command: "start", description: "Начать / Boshlash" },
-    { command: "add", description: "Добавить контакт / Kontakt qo'shish" },
-    { command: "list", description: "Мои контакты / Kontaktlarim" },
   ]);
+
+  // Set menu button to open Mini App directly
+  const WEBAPP_URL = process.env.WEBAPP_URL || "https://yakyn-app.vercel.app";
+  await bot.api.setChatMenuButton({
+    menu_button: {
+      type: "web_app",
+      text: "Открыть / Ochish",
+      web_app: { url: WEBAPP_URL },
+    },
+  });
 
   if (IS_PRODUCTION && WEBHOOK_URL) {
     // Production: Use webhook
