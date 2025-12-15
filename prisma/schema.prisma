@@ -49,6 +49,7 @@ model ContactHistory {
   contactId Int      @map("contact_id")
   userId    Int      @map("user_id")
   eventType String   @map("event_type") // "contacted"
+  note      String?  // Optional note about what you talked about
   createdAt DateTime @default(now()) @map("created_at")
 
   contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)

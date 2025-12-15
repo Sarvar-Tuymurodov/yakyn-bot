@@ -7,42 +7,52 @@ const router = Router();
 // Apply auth middleware to all routes
 router.use(devAuthMiddleware);
 
+// Helper to compute contact status
+function computeContactStatus(contact: {
+  id: number;
+  name: string;
+  frequency: string;
+  reminderTime: string;
+  notes: string | null;
+  birthday: Date | null;
+  lastContactAt: Date | null;
+  nextReminderAt: Date;
+  snoozedUntil: Date | null;
+}) {
+  const now = new Date();
+  const nextReminder = contact.snoozedUntil ?? contact.nextReminderAt;
+  const diffMs = nextReminder.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+  let status: "overdue" | "today" | "upcoming";
+  if (diffDays < 0) {
+    status = "overdue";
+  } else if (diffDays === 0) {
+    status = "today";
+  } else {
+    status = "upcoming";
+  }
+
+  return {
+    id: contact.id,
+    name: contact.name,
+    frequency: contact.frequency,
+    reminderTime: contact.reminderTime,
+    notes: contact.notes,
+    birthday: contact.birthday,
+    lastContactAt: contact.lastContactAt,
+    nextReminderAt: nextReminder,
+    status,
+    daysUntil: diffDays,
+  };
+}
+
 // GET /api/contacts - List all contacts for user
 router.get("/", async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.dbUser!.id;
     const contacts = await contactService.findByUserId(userId);
-
-    // Calculate status for each contact
-    const now = new Date();
-    const contactsWithStatus = contacts.map((contact) => {
-      const nextReminder = contact.snoozedUntil ?? contact.nextReminderAt;
-      const diffMs = nextReminder.getTime() - now.getTime();
-      const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-
-      let status: "overdue" | "today" | "upcoming";
-      if (diffDays < 0) {
-        status = "overdue";
-      } else if (diffDays === 0) {
-        status = "today";
-      } else {
-        status = "upcoming";
-      }
-
-      return {
-        id: contact.id,
-        name: contact.name,
-        frequency: contact.frequency,
-        reminderTime: contact.reminderTime,
-        notes: contact.notes,
-        birthday: contact.birthday,
-        lastContactAt: contact.lastContactAt,
-        nextReminderAt: nextReminder,
-        status,
-        daysUntil: diffDays,
-      };
-    });
-
+    const contactsWithStatus = contacts.map(computeContactStatus);
     res.json({ contacts: contactsWithStatus });
   } catch (error) {
     console.error("Error fetching contacts:", error);
@@ -67,7 +77,7 @@ router.get("/:id", async (req: AuthenticatedRequest, res: Response) => {
       return;
     }
 
-    res.json({ contact });
+    res.json({ contact: computeContactStatus(contact) });
   } catch (error) {
     console.error("Error fetching contact:", error);
     res.status(500).json({ error: "Failed to fetch contact" });
@@ -116,7 +126,7 @@ router.post("/", async (req: AuthenticatedRequest, res: Response) => {
       birthday: birthdayDate,
     });
 
-    res.status(201).json({ contact });
+    res.status(201).json({ contact: computeContactStatus(contact) });
   } catch (error) {
     console.error("Error creating contact:", error);
     res.status(500).json({ error: "Failed to create contact" });
@@ -195,7 +205,7 @@ router.put("/:id", async (req: AuthenticatedRequest, res: Response) => {
     }
 
     const contact = await contactService.update(contactId, updateData);
-    res.json({ contact });
+    res.json({ contact: contact ? computeContactStatus(contact) : null });
   } catch (error) {
     console.error("Error updating contact:", error);
     res.status(500).json({ error: "Failed to update contact" });
@@ -231,6 +241,7 @@ router.delete("/:id", async (req: AuthenticatedRequest, res: Response) => {
 router.post("/:id/contacted", async (req: AuthenticatedRequest, res: Response) => {
   try {
     const contactId = parseInt(req.params.id);
+    const { note } = req.body as { note?: string };
     const existingContact = await contactService.findById(contactId);
 
     if (!existingContact) {
@@ -244,8 +255,8 @@ router.post("/:id/contacted", async (req: AuthenticatedRequest, res: Response) =
       return;
     }
 
-    const contact = await contactService.markContacted(contactId);
-    res.json({ contact });
+    const contact = await contactService.markContacted(contactId, note);
+    res.json({ contact: contact ? computeContactStatus(contact) : null });
   } catch (error) {
     console.error("Error marking contacted:", error);
     res.status(500).json({ error: "Failed to mark as contacted" });
@@ -308,7 +319,7 @@ router.post("/:id/snooze", async (req: AuthenticatedRequest, res: Response) => {
       contact = await contactService.snooze(contactId, snoozeHours);
     }
 
-    res.json({ contact });
+    res.json({ contact: contact ? computeContactStatus(contact) : null });
   } catch (error) {
     console.error("Error snoozing contact:", error);
     res.status(500).json({ error: "Failed to snooze contact" });

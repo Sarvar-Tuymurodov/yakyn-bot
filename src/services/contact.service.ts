@@ -95,19 +95,20 @@ export const contactService = {
     });
   },
 
-  async markContacted(id: number) {
+  async markContacted(id: number, note?: string) {
     const contact = await this.findById(id);
     if (!contact) return null;
 
     const frequency = contact.frequency as Frequency;
     const nextReminderAt = calculateNextReminder(frequency, contact.reminderTime);
 
-    // Create history entry
+    // Create history entry with optional note
     await prisma.contactHistory.create({
       data: {
         contactId: id,
         userId: contact.userId,
         eventType: "contacted",
+        note: note || null,
       },
     });
 
