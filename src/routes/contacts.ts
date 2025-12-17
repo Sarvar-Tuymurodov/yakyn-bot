@@ -133,6 +133,50 @@ router.post("/", async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
+// POST /api/contacts/import - Import contacts from phone
+router.post("/import", async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { contacts } = req.body;
+
+    if (!Array.isArray(contacts) || contacts.length === 0) {
+      res.status(400).json({ error: "Contacts array is required" });
+      return;
+    }
+
+    if (contacts.length > 50) {
+      res.status(400).json({ error: "Maximum 50 contacts can be imported at once" });
+      return;
+    }
+
+    const userId = req.dbUser!.id;
+    const importedContacts = [];
+
+    for (const c of contacts) {
+      if (!c.name || typeof c.name !== "string" || c.name.trim().length === 0) {
+        continue; // Skip invalid contacts
+      }
+
+      const contact = await contactService.create({
+        userId,
+        name: c.name.trim(),
+        frequency: "monthly", // Default frequency for imported contacts
+        reminderTime: "10:00", // Default time
+        notes: c.notes?.trim() || undefined,
+      });
+
+      importedContacts.push(computeContactStatus(contact));
+    }
+
+    res.status(201).json({
+      imported: importedContacts.length,
+      contacts: importedContacts,
+    });
+  } catch (error) {
+    console.error("Error importing contacts:", error);
+    res.status(500).json({ error: "Failed to import contacts" });
+  }
+});
+
 // PUT /api/contacts/:id - Update contact
 router.put("/:id", async (req: AuthenticatedRequest, res: Response) => {
   try {
