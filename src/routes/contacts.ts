@@ -332,6 +332,42 @@ router.get("/:id/history", async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
+// POST /api/contacts/:id/undo-contacted - Undo mark as contacted
+router.post("/:id/undo-contacted", async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const contactId = parseInt(req.params.id);
+    const existingContact = await contactService.findById(contactId);
+
+    if (!existingContact) {
+      res.status(404).json({ error: "Contact not found" });
+      return;
+    }
+
+    // Verify ownership
+    if (existingContact.userId !== req.dbUser!.id) {
+      res.status(403).json({ error: "Access denied" });
+      return;
+    }
+
+    const { previousState } = req.body;
+    if (!previousState || !previousState.nextReminderAt) {
+      res.status(400).json({ error: "Previous state is required" });
+      return;
+    }
+
+    const contact = await contactService.undoMarkContacted(contactId, {
+      lastContactAt: previousState.lastContactAt ? new Date(previousState.lastContactAt) : null,
+      nextReminderAt: new Date(previousState.nextReminderAt),
+      snoozedUntil: previousState.snoozedUntil ? new Date(previousState.snoozedUntil) : null,
+    });
+
+    res.json({ contact: contact ? computeContactStatus(contact) : null });
+  } catch (error) {
+    console.error("Error undoing mark contacted:", error);
+    res.status(500).json({ error: "Failed to undo" });
+  }
+});
+
 // POST /api/contacts/:id/snooze - Snooze reminder
 router.post("/:id/snooze", async (req: AuthenticatedRequest, res: Response) => {
   try {

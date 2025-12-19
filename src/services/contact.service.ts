@@ -190,6 +190,40 @@ export const contactService = {
       take: limit,
     });
   },
+
+  async undoMarkContacted(
+    id: number,
+    previousState: {
+      lastContactAt: Date | null;
+      nextReminderAt: Date;
+      snoozedUntil: Date | null;
+    }
+  ) {
+    const contact = await this.findById(id);
+    if (!contact) return null;
+
+    // Delete the most recent history entry for this contact
+    const latestHistory = await prisma.contactHistory.findFirst({
+      where: { contactId: id },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (latestHistory) {
+      await prisma.contactHistory.delete({
+        where: { id: latestHistory.id },
+      });
+    }
+
+    // Restore previous state
+    return prisma.contact.update({
+      where: { id },
+      data: {
+        lastContactAt: previousState.lastContactAt,
+        nextReminderAt: previousState.nextReminderAt,
+        snoozedUntil: previousState.snoozedUntil,
+      },
+    });
+  },
 };
 
 export { FREQUENCY_DAYS };
