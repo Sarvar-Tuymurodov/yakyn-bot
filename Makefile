@@ -1,3 +1,6 @@
+generate-key:
+	@openssl rand -hex 32
+
 encrypt:
 	openssl aes-256-cbc -md sha512 -salt -pass pass:"$(ENCRYPTION_KEY)" -in .env.production -out .env.encrypted
 
