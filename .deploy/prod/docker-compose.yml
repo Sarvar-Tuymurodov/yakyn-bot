@@ -6,8 +6,6 @@ services:
     restart: unless-stopped
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
-    ports:
-      - 10302:3000
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://yakyn:wLT6vwKcLOstxniCWNkNhet1@postgres:5432/yakyn?schema=public
