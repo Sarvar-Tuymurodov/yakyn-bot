@@ -37,7 +37,7 @@ async function main() {
   ]);
 
   // Set menu button to open Mini App directly
-  const WEBAPP_URL = process.env.WEBAPP_URL || "https://yakyn-app.vercel.app";
+  const WEBAPP_URL = process.env.WEBAPP_URL || "https://yakyn.xda.uz";
   await bot.api.setChatMenuButton({
     menu_button: {
       type: "web_app",
