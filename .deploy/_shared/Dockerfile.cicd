@@ -47,5 +47,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Run migrations and start server
-CMD ["sh", "-c", "set -a && . /app/.env && set +a && npx prisma migrate deploy && node dist/index.js"]
+# Sync schema and start server (db push for existing databases without migrations)
+CMD ["sh", "-c", "set -a && . /app/.env && set +a && npx prisma db push --skip-generate && node dist/index.js"]
