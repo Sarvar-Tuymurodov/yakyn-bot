@@ -1,7 +1,7 @@
 services:
   yakyn-bot-prod:
     container_name: yakyn-bot-prod
-    image: ghcr.io/blink-uz/yakyn-bot:prod-latest
+    image: ghcr.io/sarvar-tuymurodov/yakyn-bot:prod-latest
     platform: linux/amd64
     restart: unless-stopped
     labels:
