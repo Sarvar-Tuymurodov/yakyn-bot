@@ -23,8 +23,6 @@ services:
       POSTGRES_USER: yakyn
       POSTGRES_PASSWORD: wLT6vwKcLOstxniCWNkNhet1
       POSTGRES_DB: yakyn
-    ports:
-      - "5432:5432"
     volumes:
       - yakyn_postgres_prod_data:/var/lib/postgresql/data
     healthcheck:
