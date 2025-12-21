@@ -10,6 +10,31 @@ services:
       - 10302:3000
     environment:
       - NODE_ENV=production
+      - DATABASE_URL=postgresql://yakyn:wLT6vwKcLOstxniCWNkNhet1@postgres:5432/yakyn?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    container_name: yakyn-postgres-prod
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: yakyn
+      POSTGRES_PASSWORD: wLT6vwKcLOstxniCWNkNhet1
+      POSTGRES_DB: yakyn
+    ports:
+      - "5432:5432"
+    volumes:
+      - yakyn_postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U yakyn -d yakyn"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  yakyn_postgres_prod_data:
 
 networks:
   default:
