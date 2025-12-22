@@ -52,7 +52,13 @@ Birinchi eslatma: {date}`,
     delete: "🗑 O'chirish",
     confirmDelete: "❌ Ha, o'chirish",
     cancel: "◀️ Bekor qilish",
+    addNote: "📝 Eslatma qo'shish",
+    skip: "⏭ O'tkazib yuborish",
   },
+
+  // Note prompt
+  askForNote: "📝 {name} bilan nima haqida gaplashdingiz?",
+  noteReceived: "✅ Eslatma saqlandi!",
 
   // List
   listContacts: `📋 Sizda {count} ta kontakt bor

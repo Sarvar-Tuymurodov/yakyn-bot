@@ -52,7 +52,13 @@ export const ru = {
     delete: "🗑 Удалить",
     confirmDelete: "❌ Да, удалить",
     cancel: "◀️ Отмена",
+    addNote: "📝 Добавить заметку",
+    skip: "⏭ Пропустить",
   },
+
+  // Note prompt
+  askForNote: "📝 О чём поговорили с {name}?",
+  noteReceived: "✅ Заметка сохранена!",
 
   // List
   listContacts: `📋 У Вас {count} контактов

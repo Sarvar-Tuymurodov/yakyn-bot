@@ -182,16 +182,17 @@ function getDaysUntilBirthday(birthday: Date): number {
   const now = new Date();
   const thisYear = now.getFullYear();
 
-  // Create birthday date for this year
+  // Set times to midnight for accurate day comparison
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const birthdayThisYear = new Date(thisYear, birthday.getMonth(), birthday.getDate());
 
   // If birthday has passed this year, check next year
-  if (birthdayThisYear < now) {
+  if (birthdayThisYear < today) {
     birthdayThisYear.setFullYear(thisYear + 1);
   }
 
-  const diffTime = birthdayThisYear.getTime() - now.getTime();
-  return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  const diffTime = birthdayThisYear.getTime() - today.getTime();
+  return Math.round(diffTime / (1000 * 60 * 60 * 24));
 }
 
 async function processBirthdayReminders(bot: Bot<BotContext>) {

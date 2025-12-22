@@ -43,13 +43,16 @@ router.post("/suggestions", async (req: AuthenticatedRequest, res: Response) => 
       const birthday = new Date(contact.birthday);
       const now = new Date();
       const thisYear = now.getFullYear();
+
+      // Set times to midnight for accurate day comparison
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const birthdayThisYear = new Date(thisYear, birthday.getMonth(), birthday.getDate());
 
-      if (birthdayThisYear < now) {
+      if (birthdayThisYear < today) {
         birthdayThisYear.setFullYear(thisYear + 1);
       }
 
-      birthdayInDays = Math.floor((birthdayThisYear.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      birthdayInDays = Math.round((birthdayThisYear.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
     }
 
     const language = req.dbUser!.language as "ru" | "uz";

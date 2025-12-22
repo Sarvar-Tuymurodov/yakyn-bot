@@ -120,19 +120,21 @@ export async function devAuthMiddleware(
   const telegramId = req.headers["x-telegram-id"];
 
   if (process.env.NODE_ENV === "development" && telegramId) {
-    const dbUser = await userService.findByTelegramId(BigInt(telegramId as string));
+    // Find or create dev user
+    const dbUser = await userService.findOrCreate(
+      BigInt(telegramId as string),
+      "dev_user"
+    );
 
-    if (dbUser) {
-      req.telegramUser = { id: Number(telegramId) };
-      req.dbUser = {
-        id: dbUser.id,
-        telegramId: dbUser.telegramId,
-        language: dbUser.language,
-        timezone: dbUser.timezone,
-      };
-      next();
-      return;
-    }
+    req.telegramUser = { id: Number(telegramId), username: "dev_user" };
+    req.dbUser = {
+      id: dbUser.id,
+      telegramId: dbUser.telegramId,
+      language: dbUser.language,
+      timezone: dbUser.timezone,
+    };
+    next();
+    return;
   }
 
   // Fall back to normal auth

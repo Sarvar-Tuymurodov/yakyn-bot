@@ -23,49 +23,87 @@ export const aiService = {
 		const { contactName, notes, daysSinceContact, birthdayInDays, language } =
 			context
 
-		const languageInstructions =
-			language === "ru"
-				? "Отвечай на русском языке. Используй неформальный дружеский тон."
-				: "O'zbek tilida javob ber. Do'stona va samimiy ohangda yoz."
+		const isRussian = language === "ru"
 
-		let contextInfo = `Имя контакта: ${contactName}`
+		// Build context description
+		let situationContext = ""
 
-		if (notes) {
-			contextInfo += `\nЗаметки о человеке: ${notes}`
-		}
-
+		// Time since last contact context
 		if (daysSinceContact !== null) {
-			contextInfo += `\nДней с последнего контакта: ${daysSinceContact}`
-		}
-
-		if (birthdayInDays != null && birthdayInDays >= 0 && birthdayInDays <= 7) {
-			if (birthdayInDays === 0) {
-				contextInfo += `\nСегодня день рождения!`
+			if (daysSinceContact <= 3) {
+				situationContext += isRussian
+					? "Недавно общались (пару дней назад). "
+					: "Yaqinda gaplashgansiz (bir necha kun oldin). "
+			} else if (daysSinceContact <= 14) {
+				situationContext += isRussian
+					? `Не общались ${daysSinceContact} дней. `
+					: `${daysSinceContact} kun gaplashmadingiz. `
+			} else if (daysSinceContact <= 30) {
+				situationContext += isRussian
+					? "Не общались около месяца. "
+					: "Taxminan bir oy gaplashmadingiz. "
 			} else {
-				contextInfo += `\nДень рождения через ${birthdayInDays} дней`
+				situationContext += isRussian
+					? `Давно не общались (${daysSinceContact} дней). `
+					: `Uzoq gaplashmadingiz (${daysSinceContact} kun). `
 			}
 		}
 
-		const prompt = `${languageInstructions}
+		// Birthday context
+		let birthdayContext = ""
+		if (birthdayInDays != null && birthdayInDays >= 0 && birthdayInDays <= 7) {
+			if (birthdayInDays === 0) {
+				birthdayContext = isRussian
+					? "ВАЖНО: Сегодня у этого человека день рождения!"
+					: "MUHIM: Bugun bu odamning tug'ilgan kuni!"
+			} else if (birthdayInDays === 1) {
+				birthdayContext = isRussian
+					? "Завтра у этого человека день рождения."
+					: "Ertaga bu odamning tug'ilgan kuni."
+			} else if (birthdayInDays <= 3) {
+				birthdayContext = isRussian
+					? `Через ${birthdayInDays} дня день рождения.`
+					: `${birthdayInDays} kundan keyin tug'ilgan kuni.`
+			}
+		}
 
-Ты помощник для приложения, которое помогает людям поддерживать связь с близкими.
+		// Notes context
+		let notesContext = ""
+		if (notes && notes.trim()) {
+			notesContext = isRussian
+				? `Информация о человеке: ${notes}`
+				: `Odam haqida ma'lumot: ${notes}`
+		}
 
-Контекст:
-${contextInfo}
+		const prompt = isRussian
+			? `Ты помогаешь написать короткое сообщение другу/знакомому по имени ${contactName}.
 
-Сгенерируй 3 коротких варианта сообщения, которое можно отправить этому человеку.
-Сообщения должны быть:
-- Естественными и дружескими
-- Короткими (1-2 предложения)
-- Разнообразными по стилю (одно может быть вопросом, другое - предложением встретиться, третье - просто поздороваться)
-${birthdayInDays === 0 ? "- Обязательно поздравь с днем рождения!" : ""}
-${
-	birthdayInDays != null && birthdayInDays > 0 && birthdayInDays <= 3
-		? "- Можно упомянуть предстоящий день рождения"
-		: ""
-}
+${situationContext}${birthdayContext ? "\n" + birthdayContext : ""}${notesContext ? "\n" + notesContext : ""}
 
-Верни ТОЛЬКО 3 сообщения, каждое на новой строке, без нумерации и без лишнего текста.`
+Напиши 3 разных варианта сообщения. Требования:
+- Пиши как реальный человек в мессенджере (короткие фразы, можно без знаков препинания в конце)
+- Каждое сообщение 1-2 предложения максимум
+- Разные стили: 1) просто узнать как дела, 2) предложить встретиться/созвониться, 3) что-то более личное если есть заметки
+${birthdayInDays === 0 ? "- ВСЕ сообщения должны быть поздравлениями с днём рождения!" : ""}
+${birthdayInDays === 1 ? "- Можно упомянуть что завтра др" : ""}
+- НЕ начинай все сообщения одинаково
+- Без эмодзи
+
+Выведи только 3 сообщения, каждое на новой строке:`
+			: `${contactName} ismli do'stingizga/tanishingizga qisqa xabar yozishda yordam beraman.
+
+${situationContext}${birthdayContext ? "\n" + birthdayContext : ""}${notesContext ? "\n" + notesContext : ""}
+
+3 xil xabar variantini yozing. Talablar:
+- Haqiqiy odam kabi yozing (qisqa iboralar)
+- Har bir xabar 1-2 gap
+- Turli uslublar: 1) ahvolni so'rash, 2) uchrashish/qo'ng'iroq taklifi, 3) shaxsiyroq narsa
+${birthdayInDays === 0 ? "- BARCHA xabarlar tug'ilgan kun tabrigi bo'lishi kerak!" : ""}
+${birthdayInDays === 1 ? "- Ertaga tug'ilgan kuni ekanini aytish mumkin" : ""}
+- Hammasi bir xil boshlanmasin
+- Emoji ishlatmang
+
+Faqat 3 ta xabarni, har birini yangi qatorda chiqaring:`
 
 		if (!openai) {
 			return getDefaultSuggestions(language, contactName)

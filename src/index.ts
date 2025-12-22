@@ -2,7 +2,7 @@ import "dotenv/config";
 import { webhookCallback } from "grammy";
 import { createBot } from "./bot/index.js";
 import { startCommand } from "./bot/commands/start.js";
-import { reminderCallback } from "./bot/callbacks/reminder.js";
+import { reminderCallback, handleNoteReply } from "./bot/callbacks/reminder.js";
 import { startReminderScheduler } from "./scheduler/reminders.js";
 import app from "./app.js";
 
@@ -26,6 +26,14 @@ async function main() {
   // Register callback handlers
   bot.callbackQuery(/^reminder:/, reminderCallback);
 
+  // Register text message handler for note replies
+  bot.on("message:text", async (ctx) => {
+    // Check if this is a note reply
+    const handled = await handleNoteReply(ctx);
+    if (handled) return;
+    // Other text messages can be handled here if needed
+  });
+
   // Error handler
   bot.catch((err) => {
     console.error("Bot error:", err);
@@ -36,15 +44,17 @@ async function main() {
     { command: "start", description: "Начать / Boshlash" },
   ]);
 
-  // Set menu button to open Mini App directly
+  // Set menu button to open Mini App directly (only in production - Telegram requires HTTPS)
   const WEBAPP_URL = process.env.WEBAPP_URL || "https://yakyn.xda.uz";
-  await bot.api.setChatMenuButton({
-    menu_button: {
-      type: "web_app",
-      text: "Открыть / Ochish",
-      web_app: { url: WEBAPP_URL },
-    },
-  });
+  if (IS_PRODUCTION) {
+    await bot.api.setChatMenuButton({
+      menu_button: {
+        type: "web_app",
+        text: "Открыть / Ochish",
+        web_app: { url: WEBAPP_URL },
+      },
+    });
+  }
 
   if (IS_PRODUCTION && WEBHOOK_URL) {
     // Production: Use webhook
