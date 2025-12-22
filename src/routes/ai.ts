@@ -96,4 +96,47 @@ router.post("/transcribe", async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
+// POST /api/ai/voice-to-contact - Transcribe audio and parse contact info
+router.post("/voice-to-contact", async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { audio } = req.body; // base64 encoded audio
+
+    if (!audio) {
+      res.status(400).json({ error: "audio is required (base64)" });
+      return;
+    }
+
+    // Convert base64 to buffer
+    const audioBuffer = Buffer.from(audio, "base64");
+    const language = req.dbUser!.language as "ru" | "uz";
+
+    // Step 1: Transcribe audio
+    const text = await aiService.transcribeAudio(audioBuffer, language);
+
+    if (!text || !text.trim()) {
+      res.status(400).json({ error: "Could not transcribe audio" });
+      return;
+    }
+
+    // Step 2: Parse contact info from transcribed text
+    const contact = await aiService.parseVoiceContact(text, language);
+
+    if (!contact) {
+      res.status(400).json({
+        error: "Could not extract contact info",
+        transcribedText: text
+      });
+      return;
+    }
+
+    res.json({
+      contact,
+      transcribedText: text
+    });
+  } catch (error) {
+    console.error("Error processing voice-to-contact:", error);
+    res.status(500).json({ error: "Failed to process voice" });
+  }
+});
+
 export default router;

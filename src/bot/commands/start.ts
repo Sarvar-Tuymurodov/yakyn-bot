@@ -8,16 +8,30 @@ export async function startCommand(ctx: BotContext) {
   // Ensure user exists in database (will be created with defaults if not)
   await userService.findOrCreate(telegramId, username);
 
-  // Simple welcome message pointing to menu button
+  // Welcome message with app description
   const message = `👋 Yakyn'ga xush kelibsiz!
 
-Ilovani ochish uchun pastdagi "Открыть / Ochish" tugmasini bosing 👇
+Yakyn — yaqinlaringiz bilan aloqani yo'qotmaslik uchun eslatmalar ilovasi.
+
+✨ Imkoniyatlar:
+• Kontaktlarni ovoz orqali qo'shish
+• AI yordamida xabar taklifi
+• Tug'ilgan kunlarni eslatish
+
+Boshlash uchun pastdagi tugmani bosing 👇
 
 —
 
 👋 Добро пожаловать в Yakyn!
 
-Нажмите кнопку "Открыть / Ochish" внизу, чтобы открыть приложение 👇`;
+Yakyn — приложение напоминаний, чтобы не терять связь с близкими.
+
+✨ Возможности:
+• Добавление контактов голосом
+• AI-подсказки для сообщений
+• Напоминания о днях рождения
+
+Нажмите кнопку внизу, чтобы начать 👇`;
 
   await ctx.reply(message);
 }

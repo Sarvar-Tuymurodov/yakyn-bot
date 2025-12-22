@@ -1,10 +1,16 @@
 import OpenAI from "openai"
+import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js"
 import fs from "fs"
 import path from "path"
 import os from "os"
+import { Blob } from "buffer"
 
 const openai = process.env.OPENAI_API_KEY
 	? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+	: null
+
+const elevenlabs = process.env.ELEVENLABS_API_KEY
+	? new ElevenLabsClient({ apiKey: process.env.ELEVENLABS_API_KEY })
 	: null
 
 interface SuggestionContext {
@@ -15,7 +21,94 @@ interface SuggestionContext {
 	language: "ru" | "uz"
 }
 
+interface ParsedContact {
+	name: string
+	frequency?: "weekly" | "biweekly" | "monthly" | "quarterly"
+	notes?: string
+	birthday?: string // YYYY-MM-DD format
+}
+
 export const aiService = {
+	/**
+	 * Parse voice input to extract contact information
+	 */
+	async parseVoiceContact(
+		text: string,
+		language: "ru" | "uz"
+	): Promise<ParsedContact | null> {
+		if (!openai || !text.trim()) {
+			return null
+		}
+
+		const isRussian = language === "ru"
+
+		const prompt = isRussian
+			? `Проанализируй текст и извлеки информацию о контакте для добавления в приложение напоминаний о связи с людьми.
+
+Текст: "${text}"
+
+Извлеки:
+1. name - имя человека (обязательно)
+2. frequency - как часто напоминать: weekly (каждую неделю), biweekly (раз в 2 недели), monthly (раз в месяц), quarterly (раз в квартал)
+3. notes - любая дополнительная информация о человеке
+4. birthday - дата рождения в формате YYYY-MM-DD (если упоминается)
+
+Ответь ТОЛЬКО валидным JSON объектом (без markdown):
+{"name": "...", "frequency": "...", "notes": "...", "birthday": "..."}`
+			: `Matnni tahlil qiling va kontakt ma'lumotlarini ajratib oling.
+
+Matn: "${text}"
+
+Ajratib oling:
+1. name - odamning ismi (majburiy)
+2. frequency - qanchalik tez-tez eslatish: weekly (har hafta), biweekly (2 haftada), monthly (har oy), quarterly (har chorak)
+3. notes - odam haqida qo'shimcha ma'lumot
+4. birthday - tug'ilgan kuni YYYY-MM-DD formatda (agar aytilgan bo'lsa)
+
+FAQAT JSON obyekt bilan javob bering (markdown'siz):
+{"name": "...", "frequency": "...", "notes": "...", "birthday": "..."}`
+
+		try {
+			const response = await openai.chat.completions.create({
+				model: "gpt-4o-mini",
+				messages: [{ role: "user", content: prompt }],
+				max_tokens: 200,
+				temperature: 0.3,
+			})
+
+			const content = response.choices[0]?.message?.content || ""
+
+			// Extract JSON from response (handle potential markdown code blocks)
+			let jsonStr = content.trim()
+			if (jsonStr.startsWith("```")) {
+				jsonStr = jsonStr.replace(/```json?\n?/g, "").replace(/```/g, "")
+			}
+
+			const parsed = JSON.parse(jsonStr)
+
+			// Validate required fields
+			if (!parsed.name || typeof parsed.name !== "string") {
+				return null
+			}
+
+			// Validate frequency if provided
+			const validFrequencies = ["weekly", "biweekly", "monthly", "quarterly"]
+			if (parsed.frequency && !validFrequencies.includes(parsed.frequency)) {
+				delete parsed.frequency
+			}
+
+			return {
+				name: parsed.name.trim(),
+				frequency: parsed.frequency,
+				notes: parsed.notes?.trim() || undefined,
+				birthday: parsed.birthday || undefined,
+			}
+		} catch (error) {
+			console.error("Error parsing voice contact:", error)
+			return null
+		}
+	},
+
 	/**
 	 * Generate message suggestions based on contact context
 	 */
@@ -134,9 +227,55 @@ Faqat 3 ta xabarni, har birini yangi qatorda chiqaring:`
 	},
 
 	/**
-	 * Transcribe audio using Whisper
+	 * Transcribe audio using Whisper (Russian) or ElevenLabs (Uzbek)
 	 */
 	async transcribeAudio(
+		audioBuffer: Buffer,
+		language: "ru" | "uz"
+	): Promise<string> {
+		// Use ElevenLabs for Uzbek (better support), Whisper for Russian
+		if (language === "uz") {
+			return this.transcribeWithElevenLabs(audioBuffer)
+		}
+		return this.transcribeWithWhisper(audioBuffer, language)
+	},
+
+	/**
+	 * Transcribe audio using ElevenLabs (for Uzbek)
+	 */
+	async transcribeWithElevenLabs(audioBuffer: Buffer): Promise<string> {
+		if (!elevenlabs) {
+			throw new Error("ElevenLabs API key not configured")
+		}
+
+		try {
+			const audioBlob = new Blob([audioBuffer], { type: "audio/webm" })
+
+			const transcription = await elevenlabs.speechToText.convert({
+				file: audioBlob,
+				modelId: "scribe_v1",
+				languageCode: "uzb",
+			})
+
+			// Handle different response types
+			if ("text" in transcription) {
+				return transcription.text || ""
+			}
+			if ("transcripts" in transcription && transcription.transcripts?.length > 0) {
+				return transcription.transcripts.map((t) => t.text).join(" ")
+			}
+
+			return ""
+		} catch (error) {
+			console.error("Error transcribing with ElevenLabs:", error)
+			throw new Error("Failed to transcribe audio")
+		}
+	},
+
+	/**
+	 * Transcribe audio using Whisper (for Russian)
+	 */
+	async transcribeWithWhisper(
 		audioBuffer: Buffer,
 		language: "ru" | "uz"
 	): Promise<string> {
@@ -155,21 +294,15 @@ Faqat 3 ta xabarni, har birini yangi qatorda chiqaring:`
 			// Create read stream for OpenAI
 			const fileStream = fs.createReadStream(tempFilePath)
 
-			// Whisper doesn't officially support Uzbek, but can transcribe it
-			// For Russian, we explicitly set the language
-			// For Uzbek, we add a prompt hint to help recognition
 			const response = await openai.audio.transcriptions.create({
 				file: fileStream,
 				model: "whisper-1",
-				...(language === "ru"
-					? { language: "ru" }
-					: { prompt: "O'zbek tilida gapiraman. Salom, qalaysiz?" }
-				),
+				language: language,
 			})
 
 			return response.text
 		} catch (error) {
-			console.error("Error transcribing audio:", error)
+			console.error("Error transcribing with Whisper:", error)
 			throw new Error("Failed to transcribe audio")
 		} finally {
 			// Clean up temp file
