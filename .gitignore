@@ -29,8 +29,7 @@ yarn-error.log*
 .env*
 !.env.example
 !.env.encrypted
-!.env.dev.encrypted
-!.env.stage.encrypted
+!.env.*.encrypted
 
 # IDE
 .vscode/
