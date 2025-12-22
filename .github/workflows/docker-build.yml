@@ -69,8 +69,9 @@ jobs:
             type=raw,value=${{ steps.env-tag.outputs.tag }}
             type=sha,prefix=${{ steps.env-tag.outputs.env }}-
 
-      - name: Prepare env for build
+      - name: Decrypt env file
         run: |
+          ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }} make decrypt
           cp .env.production .env
 
       - name: Build and push Docker image
