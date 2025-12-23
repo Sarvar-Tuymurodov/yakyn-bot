@@ -30,10 +30,16 @@ export const userService = {
   },
 
   async findOrCreate(telegramId: bigint, username?: string) {
-    const existing = await this.findByTelegramId(telegramId);
-    if (existing) return existing;
-
-    return this.create({ telegramId, username });
+    // Use upsert to avoid race condition when multiple requests come in simultaneously
+    return prisma.user.upsert({
+      where: { telegramId },
+      update: {}, // Don't update anything if user exists
+      create: {
+        telegramId,
+        username,
+        language: "ru",
+      },
+    });
   },
 
   async updateLanguage(telegramId: bigint, language: Language) {
