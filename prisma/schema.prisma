@@ -57,3 +57,17 @@ model ContactHistory {
 
   @@map("contact_history")
 }
+
+// Analytics events for tracking user activity
+model AnalyticsEvent {
+  id        Int      @id @default(autoincrement())
+  userId    Int?     @map("user_id") // Optional - some events may be anonymous
+  event     String   // Event type: app_opened, contact_created, etc.
+  metadata  Json?    // Optional extra data (e.g., { contactId: 123 })
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([event])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("analytics_events")
+}

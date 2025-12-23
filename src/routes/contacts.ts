@@ -1,6 +1,7 @@
 import { Router, Response } from "express";
 import { contactService, Frequency } from "../services/contact.service.js";
 import { AuthenticatedRequest, devAuthMiddleware } from "../middlewares/auth.js";
+import { analyticsService } from "../services/analytics.service.js";
 
 const router = Router();
 
@@ -124,6 +125,13 @@ router.post("/", async (req: AuthenticatedRequest, res: Response) => {
       reminderTime,
       notes: notes?.trim() || undefined,
       birthday: birthdayDate,
+    });
+
+    // Track analytics
+    analyticsService.track({
+      userId: req.dbUser!.id,
+      event: "contact_created",
+      metadata: { contactId: contact.id },
     });
 
     res.status(201).json({ contact: computeContactStatus(contact) });
@@ -274,6 +282,14 @@ router.delete("/:id", async (req: AuthenticatedRequest, res: Response) => {
     }
 
     await contactService.delete(contactId);
+
+    // Track analytics
+    analyticsService.track({
+      userId: req.dbUser!.id,
+      event: "contact_deleted",
+      metadata: { contactId },
+    });
+
     res.json({ success: true });
   } catch (error) {
     console.error("Error deleting contact:", error);
@@ -300,6 +316,14 @@ router.post("/:id/contacted", async (req: AuthenticatedRequest, res: Response) =
     }
 
     const contact = await contactService.markContacted(contactId, note);
+
+    // Track analytics
+    analyticsService.track({
+      userId: req.dbUser!.id,
+      event: "contact_contacted",
+      metadata: { contactId },
+    });
+
     res.json({ contact: contact ? computeContactStatus(contact) : null });
   } catch (error) {
     console.error("Error marking contacted:", error);
@@ -398,6 +422,13 @@ router.post("/:id/snooze", async (req: AuthenticatedRequest, res: Response) => {
       }
       contact = await contactService.snooze(contactId, snoozeHours);
     }
+
+    // Track analytics
+    analyticsService.track({
+      userId: req.dbUser!.id,
+      event: "contact_snoozed",
+      metadata: { contactId, hours },
+    });
 
     res.json({ contact: contact ? computeContactStatus(contact) : null });
   } catch (error) {

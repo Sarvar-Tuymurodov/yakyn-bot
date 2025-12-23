@@ -2,6 +2,7 @@ import { Router, Response } from "express";
 import { aiService } from "../services/ai.service.js";
 import { contactService } from "../services/contact.service.js";
 import { AuthenticatedRequest, devAuthMiddleware } from "../middlewares/auth.js";
+import { analyticsService } from "../services/analytics.service.js";
 
 const router = Router();
 
@@ -63,6 +64,13 @@ router.post("/suggestions", async (req: AuthenticatedRequest, res: Response) => 
       daysSinceContact,
       birthdayInDays,
       language,
+    });
+
+    // Track analytics
+    analyticsService.track({
+      userId: req.dbUser!.id,
+      event: "ai_suggestions_requested",
+      metadata: { contactId: contact.id },
     });
 
     res.json({ suggestions });
@@ -128,6 +136,12 @@ router.post("/voice-to-contact", async (req: AuthenticatedRequest, res: Response
       });
       return;
     }
+
+    // Track analytics
+    analyticsService.track({
+      userId: req.dbUser!.id,
+      event: "voice_to_contact_used",
+    });
 
     res.json({
       contact,

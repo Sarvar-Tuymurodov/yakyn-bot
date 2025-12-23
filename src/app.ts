@@ -3,6 +3,7 @@ import cors from "cors";
 import contactsRouter from "./routes/contacts.js";
 import usersRouter from "./routes/users.js";
 import aiRouter from "./routes/ai.js";
+import analyticsRouter from "./routes/analytics.js";
 
 const app = express();
 
@@ -19,5 +20,6 @@ app.get("/health", (_req, res) => {
 app.use("/api/contacts", contactsRouter);
 app.use("/api/user", usersRouter);
 app.use("/api/ai", aiRouter);
+app.use("/api/analytics", analyticsRouter);
 
 export default app;

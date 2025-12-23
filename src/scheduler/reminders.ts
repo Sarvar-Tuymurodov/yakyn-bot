@@ -4,6 +4,7 @@ import prisma from "../lib/prisma.js";
 import { t, formatMessage, Language, locales } from "../locales/index.js";
 import { InlineKeyboard } from "grammy";
 import type { BotContext } from "../bot/index.js";
+import { analyticsService } from "../services/analytics.service.js";
 
 interface BirthdayContact {
   id: number;
@@ -161,6 +162,15 @@ async function sendReminderNotification(
     await bot.api.sendMessage(telegramId, message, {
       reply_markup: keyboard,
     });
+
+    // Track analytics for each reminder sent
+    for (const reminder of reminders) {
+      analyticsService.track({
+        userId: reminder.userId,
+        event: "reminder_sent",
+        metadata: { contactId: reminder.id },
+      });
+    }
 
     // Mark reminders as notified by updating nextReminderAt to far future
     // (they will be reset when user marks as contacted or snoozes)

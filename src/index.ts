@@ -72,23 +72,15 @@ async function main() {
       console.log(`📡 Webhook set to ${WEBHOOK_URL}/webhook`);
     });
   } else {
-    // Development: Use long polling
-    console.log("🔧 Running in development mode with long polling");
+    // Development: Only run API server, don't touch Telegram webhook
+    // This keeps production webhook intact while testing API locally
+    console.log("🔧 Running in development mode (API only)");
+    console.log("ℹ️  Telegram bot remains on production webhook - not affected");
 
-    // Delete any existing webhook
-    await bot.api.deleteWebhook();
-
-    // Start Express server
+    // Start Express server for API testing
     app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-    });
-
-    // Start bot (long polling)
-    console.log("🤖 Starting bot...");
-    await bot.start({
-      onStart: (botInfo) => {
-        console.log(`✅ Bot @${botInfo.username} is running!`);
-      },
+      console.log(`🚀 API server running on port ${PORT}`);
+      console.log(`📱 Test frontend at http://localhost:5173`);
     });
   }
 

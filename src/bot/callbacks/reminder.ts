@@ -3,6 +3,7 @@ import { InlineKeyboard } from "grammy";
 import { userService } from "../../services/user.service.js";
 import { contactService } from "../../services/contact.service.js";
 import { t, formatMessage, Language, locales } from "../../locales/index.js";
+import { analyticsService } from "../../services/analytics.service.js";
 
 export async function reminderCallback(ctx: BotContext) {
   const callbackData = ctx.callbackQuery?.data;
@@ -26,6 +27,15 @@ export async function reminderCallback(ctx: BotContext) {
   }
 
   await ctx.answerCallbackQuery();
+
+  // Track reminder clicked analytics
+  if (user) {
+    analyticsService.track({
+      userId: user.id,
+      event: "reminder_clicked",
+      metadata: { contactId, action },
+    });
+  }
 
   switch (action) {
     case "contacted": {
