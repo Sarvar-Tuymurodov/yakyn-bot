@@ -6,6 +6,8 @@ import { InlineKeyboard } from "grammy";
 import type { BotContext } from "../bot/index.js";
 import { analyticsService } from "../services/analytics.service.js";
 
+const WEBAPP_URL = process.env.WEBAPP_URL || "https://yakyn.xda.uz";
+
 interface BirthdayContact {
   id: number;
   name: string;
@@ -133,7 +135,7 @@ async function sendReminderNotification(
   const keyboard = new InlineKeyboard();
 
   // Add button to open Mini App
-  keyboard.text(locales[lang].buttons.openApp, "action:open_app");
+  keyboard.webApp(locales[lang].buttons.openApp, WEBAPP_URL);
 
   // If single contact, add quick action buttons
   if (reminders.length === 1) {
@@ -236,7 +238,7 @@ async function processBirthdayReminders(bot: Bot<BotContext>) {
         });
 
         const keyboard = new InlineKeyboard();
-        keyboard.text("📱 Открыть Yakyn", "action:open_app");
+        keyboard.webApp(locales[lang].buttons.openApp, WEBAPP_URL);
 
         await bot.api.sendMessage(telegramId, message, {
           reply_markup: keyboard,
@@ -256,7 +258,7 @@ async function processBirthdayReminders(bot: Bot<BotContext>) {
         });
 
         const keyboard = new InlineKeyboard();
-        keyboard.text("📱 Открыть Yakyn", "action:open_app");
+        keyboard.webApp(locales[lang].buttons.openApp, WEBAPP_URL);
 
         await bot.api.sendMessage(telegramId, message, {
           reply_markup: keyboard,

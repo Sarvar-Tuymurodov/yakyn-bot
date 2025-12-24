@@ -5,12 +5,12 @@ export const uz = {
   // Welcome (for new users)
   welcome: `👋 Yakyn'ga xush kelibsiz!
 
-Men sizga muhim odamlar bilan aloqani yo'qotmaslikda yordam beraman.
+Yaqinlaringiz bilan iliq munosabatlarni saqlab qolishda yordam beraman.
 
 Qanday ishlaydi:
-1. Ilovada kontakt qo'shing
+1. Kontakt qo'shing
 2. Qanchalik tez-tez eslatishni tanlang
-3. O'z vaqtida eslatmalar oling
+3. Do'stona eslatmalar oling
 
 Boshlash uchun quyidagi tugmani bosing 👇`,
 
@@ -66,26 +66,25 @@ Birinchi eslatma: {date}`,
   noContacts: "📭 Sizda hali kontaktlar yo'q.",
 
   // Reminder
-  reminder: `🔔 Eslatma
+  reminder: `👋 Yozish uchun zo'r fursat
 
-Bog'lanish vaqti keldi:
-{contacts}`,
-  reminderItem: "• {name} — {days} kun oldin",
+{contacts}
+
+Oddiy «salom, qalaysan?» ikkalangizning kayfiyatini ko'taradi ❤️`,
+  reminderItem: "• {name}",
 
   // Birthday reminders
-  birthdayReminder: `🎂 Tug'ilgan kun yaqinlashmoqda!
+  birthdayReminder: `🎂 {days} kundan keyin {name}ning tug'ilgan kuni!
 
-{name}ning tug'ilgan kuni {days} kundan keyin.
-Tabriklashtni unutmang!`,
-  birthdayToday: `🎉 Bugun tug'ilgan kun!
+Tabrik tayyorlash uchun eng yaxshi vaqt — bir necha iliq so'z yozing yoki qo'ng'iroq rejalashtiring 💝`,
+  birthdayToday: `🎉 Bugun {name}ning tug'ilgan kuni!
 
-{name}ning bugun tug'ilgan kuni!
-Hoziroq tabriklang!`,
+Hoziroq qo'ng'iroq qiling yoki yozing — e'tiboringiz bu kunni unutilmas qiladi ✨`,
 
   // Actions
-  markedContacted: "✅ Yaxshi! Belgilab qo'ydim. Keyingi eslatma: {date}",
-  snoozedTomorrow: "⏰ Yaxshi! Ertaga soat {time} da eslataman",
-  snoozedHours: "⏰ Yaxshi! {hours} soatdan keyin eslataman",
+  markedContacted: "✅ Barakalla! Aloqa saqlab qolindi 💪\n\nKeyingi eslatma: {date}",
+  snoozedTomorrow: "⏰ Ertaga soat {time} da eslataman",
+  snoozedHours: "⏰ {hours} soatdan keyin eslataman",
 
   // Delete
   confirmDeleteContact: '⚠️ "{name}" kontaktini o\'chirasizmi?',
