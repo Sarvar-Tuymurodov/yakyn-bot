@@ -44,12 +44,12 @@ router.get("/summary", async (_req, res) => {
   }
 });
 
-// Admin stats endpoint (uses ADMIN_SECRET)
+// Admin stats endpoint (uses ADMIN_TELEGRAM_ID)
 router.get("/admin/stats", async (req, res) => {
-  const secret = req.headers["x-admin-secret"] || req.query.secret;
-  const adminSecret = process.env.ADMIN_SECRET;
+  const telegramId = req.headers["x-telegram-id"] || req.query.tg;
+  const adminTelegramId = process.env.ADMIN_TELEGRAM_ID;
 
-  if (!adminSecret || secret !== adminSecret) {
+  if (!adminTelegramId || String(telegramId) !== adminTelegramId) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
