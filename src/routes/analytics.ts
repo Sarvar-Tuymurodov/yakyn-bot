@@ -33,7 +33,7 @@ router.post("/track", async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
-// Get analytics summary (admin only - you might want to add auth)
+// Get analytics summary (requires auth)
 router.get("/summary", async (_req, res) => {
   try {
     const summary = await analyticsService.getSummary();
@@ -41,6 +41,26 @@ router.get("/summary", async (_req, res) => {
   } catch (error) {
     console.error("Failed to get summary:", error);
     res.status(500).json({ error: "Failed to get summary" });
+  }
+});
+
+// Admin stats endpoint (uses ADMIN_SECRET)
+router.get("/admin/stats", async (req, res) => {
+  const secret = req.headers["x-admin-secret"] || req.query.secret;
+  const adminSecret = process.env.ADMIN_SECRET;
+
+  if (!adminSecret || secret !== adminSecret) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  try {
+    const summary = await analyticsService.getSummary();
+    const dau = await analyticsService.getDailyActiveUsers(14);
+    res.json({ ...summary, dailyActiveUsers: dau });
+  } catch (error) {
+    console.error("Failed to get admin stats:", error);
+    res.status(500).json({ error: "Failed to get stats" });
   }
 });
 
