@@ -1,9 +1,30 @@
-import { Router, Response } from "express";
+import { Router, Response, Request } from "express";
 import { analyticsService, type AnalyticsEventType } from "../services/analytics.service.js";
 import { AuthenticatedRequest, devAuthMiddleware } from "../middlewares/auth.js";
 
 const router = Router();
 
+// Admin stats endpoint (no auth middleware - uses ADMIN_TELEGRAM_ID)
+router.get("/admin/stats", async (req: Request, res: Response) => {
+  const telegramId = req.headers["x-telegram-id"] || req.query.tg;
+  const adminTelegramId = process.env.ADMIN_TELEGRAM_ID;
+
+  if (!adminTelegramId || String(telegramId) !== adminTelegramId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  try {
+    const summary = await analyticsService.getSummary();
+    const dau = await analyticsService.getDailyActiveUsers(14);
+    res.json({ ...summary, dailyActiveUsers: dau });
+  } catch (error) {
+    console.error("Failed to get admin stats:", error);
+    res.status(500).json({ error: "Failed to get stats" });
+  }
+});
+
+// Apply auth middleware to all routes below
 router.use(devAuthMiddleware);
 
 // Track an event from frontend
@@ -41,26 +62,6 @@ router.get("/summary", async (_req, res) => {
   } catch (error) {
     console.error("Failed to get summary:", error);
     res.status(500).json({ error: "Failed to get summary" });
-  }
-});
-
-// Admin stats endpoint (uses ADMIN_TELEGRAM_ID)
-router.get("/admin/stats", async (req, res) => {
-  const telegramId = req.headers["x-telegram-id"] || req.query.tg;
-  const adminTelegramId = process.env.ADMIN_TELEGRAM_ID;
-
-  if (!adminTelegramId || String(telegramId) !== adminTelegramId) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-
-  try {
-    const summary = await analyticsService.getSummary();
-    const dau = await analyticsService.getDailyActiveUsers(14);
-    res.json({ ...summary, dailyActiveUsers: dau });
-  } catch (error) {
-    console.error("Failed to get admin stats:", error);
-    res.status(500).json({ error: "Failed to get stats" });
   }
 });
 
